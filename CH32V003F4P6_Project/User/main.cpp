@@ -21,47 +21,34 @@
 */
 
 #include "debug.h"
+#include "button.h"
 
 
 /* Global define */
-
+#define ever ;;
 
 /* Global Variable */
-vu8 val;
 
-/*********************************************************************
- * @fn      USARTx_CFG
- *
- * @brief   Initializes the USART2 & USART3 peripheral.
- *
- * @return  none
- */
-void USARTx_CFG(void)
-{
-    GPIO_InitTypeDef  GPIO_InitStructure = {0};
-    USART_InitTypeDef USART_InitStructure = {0};
-
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_USART1, ENABLE);
-
-    /* USART1 TX-->D.5   RX-->D.6 */
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_Init(GPIOD, &GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_Init(GPIOD, &GPIO_InitStructure);
-
-    USART_InitStructure.USART_BaudRate = 115200;
-    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-    USART_InitStructure.USART_StopBits = USART_StopBits_1;
-    USART_InitStructure.USART_Parity = USART_Parity_No;
-    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStructure.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
-
-    USART_Init(USART1, &USART_InitStructure);
-    USART_Cmd(USART1, ENABLE);
+void GPIO_Clock_Init(void){
+    RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOC|RCC_APB2Periph_GPIOD, ENABLE);
 }
+
+
+void setup_interrupt(){
+    // Enable the interrupt
+    NVIC_EnableIRQ(SysTicK_IRQn);
+    SysTick->SR = 0;   
+    SysTick->CMP = BUTTON_SAMPLE_TIME_MS * (SystemCoreClock / 1000);
+    SysTick->CNT = 0;
+    //SysTick->CTLR = 0;  // Reset System Count Control Register
+    //SysTick->CTLR |= 0b0001;    // Start the system counter STK
+    //SysTick->CTLR |= 0b0010;    // Enabling counter interrupts
+    //SysTick->CTLR |= 0b0100;    //  1: HCLK for time base; 0: HCLK/8 for time base.
+    //SysTick->CTLR |= 0b1000;    // Re-counting from 0 after counting up to the comparison value.
+    SysTick->CTLR = 0x000F;
+
+}
+
 
 /*********************************************************************
  * @fn      main
@@ -72,25 +59,11 @@ void USARTx_CFG(void)
  */
 int main(void)
 {
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-    Delay_Init();
-    USART_Printf_Init(115200);
-    printf("SystemClk1:%d\r\n",SystemCoreClock);
+    GPIO_Clock_Init();
+    Button button(GPIOC, BUTTON_PIN);
 
-    USARTx_CFG();
-
-    while(1)
+    for(ever)
     {
 
-        while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET)
-        {
-            /* waiting for receiving finish */
-        }
-        val = (USART_ReceiveData(USART1));
-        USART_SendData(USART1, ~val);
-        while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET)
-        {
-            /* waiting for sending finish */
-        }
     }
 }
