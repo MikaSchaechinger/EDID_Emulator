@@ -15,7 +15,7 @@
 
 // Port D Pins
 #define SWIO                    GPIO_Pin_1  // Programming Pin
-#define BUTTON1                 GPIO_Pin_2  // User Button
+#define BUTTON_PIN              GPIO_Pin_2  // User Button
 #define STATUS_LED              GPIO_Pin_4  // Blue Status LED (low active)
 #define RS232_TX                GPIO_Pin_5  // Serial communication over USB-C
 #define RS232_RX                GPIO_Pin_6  // Serial communication over USB-C
