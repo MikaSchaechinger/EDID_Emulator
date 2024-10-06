@@ -25,8 +25,9 @@ User/main.o: ../User/main.cpp \
  C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\Peripheral\inc/ch32v00x.h \
  C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/led/led_state.h \
  C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/led/pwm_led.h \
- ../User/button/button.h \
- C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/pins.h
+ C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/button/button.h \
+ C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/pins.h \
+ C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/usart/usart.h
 
 C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/led/standard_led.h:
 
@@ -80,6 +81,8 @@ C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/led/led_
 
 C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/led/pwm_led.h:
 
-../User/button/button.h:
+C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/button/button.h:
 
 C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/pins.h:
+
+C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User/usart/usart.h:

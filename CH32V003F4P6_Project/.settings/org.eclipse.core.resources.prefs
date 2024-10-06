@@ -9,3 +9,5 @@ encoding//User/led/standard_led.h=GBK
 encoding//User/main.cpp=GBK
 encoding//User/pins.h=GBK
 encoding//User/usart/usart.h=GBK
+encoding//User/usart/usart_receiver.h=GBK
+encoding//User/usart/usert_receiver.cpp=GBK

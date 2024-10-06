@@ -23,7 +23,9 @@
 #include <led/standard_led.h>
 #include <led/pwm_led.h>
 #include "debug.h"
-#include "button/button.h"
+#include <button/button.h>
+#include <usart/usart.h>
+
 
 
 /* Global define */
@@ -134,12 +136,16 @@ void pwmPD4init(){
 int main(void)
 {
     GPIO_Clock_Init();
-    setup_interrupt();
+
+    // Initialice USART1 with the RX interrupt
+    USARTx_CFG();
 
     button.init();
     errorLED.init();
     pwmPD4init();
     statusLED.init();
+
+    setup_interrupt();  // Setup the interrupt for the button, LEDs and SysTick Timer
 
     ButtonState buttonState;
 
