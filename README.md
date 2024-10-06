@@ -1,3 +1,6 @@
+# EDID Emulator
+
+
 EDID Emulator is a Open Source Adapter for Reading, Cloning and Editing EDIDs.
 
 The PCB ist hosted on OSHWLab and can be viewd with EasyEda:
@@ -19,8 +22,13 @@ It has a USB-C Connector to access the Serial Interface, and two HDMI Ports for 
 The PCB is a 6-Layer PCB, so the TMDS lines have enough shielding.
 
 
+## Microcontroller:
 
-Serial Interface:
+To control the Adapter, a ch32v003 from WCH is used. It has a UART Interface over USB-C, I2C for the EEPROM and GPIOs for the Button and LEDs.
+It can controll the EEPROM I2C Adress and can detect the 5V Power from the HDMI Source. 
+
+
+## Serial Interface:
 
 The Serial Interface over USB-C is used to read out, write and edit EDIDs. The Serial Settings are:
 9600 Baud
@@ -47,7 +55,12 @@ read -all                       - Reads all EDIDs as json with checksum
 write <EDID-SLOT-Index> <EDID-Data> -f - Writes the EDID to the given Slot
 
 
+## Button Interface:
 
+The Adapter has a Button to control the Adapter and two LEDs to give feedback...
+
+
+## EDID Storrage:
 
 The Adapter has a 32kBit EEPROM. With 256 Bytes per (extended) EDID, this allows for 1 active EDID + 14 stored EDIDs + Metadata to be stored.
 
