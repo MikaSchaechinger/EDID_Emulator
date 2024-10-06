@@ -1,0 +1,4 @@
+
+/CH32V003F4P6_Project/obj/*
+*.o
+*.d

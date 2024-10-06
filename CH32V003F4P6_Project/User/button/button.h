@@ -46,7 +46,9 @@ private:
     
     // Button debouncing
     bool lastBounceState;
+    bool debouncedState;
     uint32_t lastBounceTime;
+
 
     // Button press tracking
     ButtonInternalState internalState;
@@ -56,18 +58,19 @@ private:
     uint32_t lastEventTime;
 
     // Button options
+    bool inverted;
     bool doubleClickEnabled;
     
 
 public:
     // Constructor
-    Button(GPIO_TypeDef* port, uint16_t pin);
+    Button(GPIO_TypeDef* port, uint16_t pin, bool inverted);
 
     // Method to initialize button (set pin mode, etc.)
     void init();
 
     // Method to update button state, call this in the main loop
-    void update(uint32_t sysTime);
+    void update(uint32_t sysTimeMS);
 
     // Method to check if a short press occurred
     ButtonState getButtonState(bool reset = true);

@@ -1,5 +1,5 @@
 ################################################################################
-# MRS Version: {"version":"1.8.4","date":"2023/02/015"}
+# MRS Version: 1.9.2
 # Automatically-generated file. Do not edit!
 ################################################################################
 
@@ -37,5 +37,7 @@ Core \
 Debug \
 Peripheral/src \
 Startup \
+User/button \
 User \
+User/led \
 

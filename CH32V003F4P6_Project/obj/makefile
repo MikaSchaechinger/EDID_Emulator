@@ -1,5 +1,5 @@
 ################################################################################
-# MRS Version: {"version":"1.8.4","date":"2023/02/015"}
+# MRS Version: 1.9.2
 # Automatically-generated file. Do not edit!
 ################################################################################
 
@@ -9,6 +9,8 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include User/led/subdir.mk
+-include User/button/subdir.mk
 -include User/subdir.mk
 -include Startup/subdir.mk
 -include Peripheral/src/subdir.mk
@@ -54,34 +56,34 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 SECONDARY_FLASH += \
-CH32V003F4P6.hex \
+EDID_Emulator.hex \
 
 SECONDARY_LIST += \
-CH32V003F4P6.lst \
+EDID_Emulator.lst \
 
 SECONDARY_SIZE += \
-CH32V003F4P6.siz \
+EDID_Emulator.siz \
 
 
 # All Target
-all: CH32V003F4P6.elf secondary-outputs
+all: EDID_Emulator.elf secondary-outputs
 
 # Tool invocations
-CH32V003F4P6.elf: $(OBJS) $(USER_OBJS)
-	@	@	riscv-none-embed-g++ -march=rv32ecxw -mabi=ilp32e -msmall-data-limit=0 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -T Link.ld -nostartfiles -Xlinker --gc-sections -L"../LD" -Wl,-Map,"CH32V003F4P6.map" --specs=nano.specs --specs=nosys.specs -o "CH32V003F4P6.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+EDID_Emulator.elf: $(OBJS) $(USER_OBJS)
+	@	@	riscv-none-embed-g++ -march=rv32ecxw -mabi=ilp32e -msmall-data-limit=0 -msave-restore -O0 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -T Link.ld -nostartfiles -Xlinker --gc-sections -L"../LD" -Wl,-Map,"EDID_Emulator.map" --specs=nano.specs --specs=nosys.specs -o "EDID_Emulator.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@	@
-CH32V003F4P6.hex: CH32V003F4P6.elf
-	@	riscv-none-embed-objcopy -O ihex "CH32V003F4P6.elf"  "CH32V003F4P6.hex"
+EDID_Emulator.hex: EDID_Emulator.elf
+	@	riscv-none-embed-objcopy -O ihex "EDID_Emulator.elf"  "EDID_Emulator.hex"
 	@	@
-CH32V003F4P6.lst: CH32V003F4P6.elf
-	@	riscv-none-embed-objdump --all-headers --demangle --disassemble -M xw "CH32V003F4P6.elf" > "CH32V003F4P6.lst"
+EDID_Emulator.lst: EDID_Emulator.elf
+	@	riscv-none-embed-objdump --all-headers --demangle --disassemble -M xw "EDID_Emulator.elf" > "EDID_Emulator.lst"
 	@	@
-CH32V003F4P6.siz: CH32V003F4P6.elf
-	@	riscv-none-embed-size --format=berkeley "CH32V003F4P6.elf"
+EDID_Emulator.siz: EDID_Emulator.elf
+	@	riscv-none-embed-size --format=berkeley "EDID_Emulator.elf"
 	@	@
 # Other Targets
 clean:
-	-$(RM) $(C_UPPER_DEPS)$(SECONDARY_LIST)$(SECONDARY_SIZE)$(S_DEPS)$(C_DEPS)$(CC_DEPS)$(ASM_UPPER_DEPS)$(C++_DEPS)$(OBJS)$(CXX_DEPS)$(SECONDARY_FLASH)$(ASM_DEPS)$(S_UPPER_DEPS)$(CPP_DEPS) CH32V003F4P6.elf
+	-$(RM) $(C_UPPER_DEPS)$(SECONDARY_LIST)$(SECONDARY_SIZE)$(S_DEPS)$(C_DEPS)$(CC_DEPS)$(ASM_UPPER_DEPS)$(C++_DEPS)$(OBJS)$(CXX_DEPS)$(SECONDARY_FLASH)$(ASM_DEPS)$(S_UPPER_DEPS)$(CPP_DEPS) EDID_Emulator.elf
 	-@
 secondary-outputs: $(SECONDARY_FLASH) $(SECONDARY_LIST) $(SECONDARY_SIZE)
 

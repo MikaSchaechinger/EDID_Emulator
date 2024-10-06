@@ -1,5 +1,5 @@
 ################################################################################
-# MRS Version: {"version":"1.8.4","date":"2023/02/015"}
+# MRS Version: 1.9.2
 # Automatically-generated file. Do not edit!
 ################################################################################
 
@@ -16,6 +16,6 @@ S_UPPER_DEPS += \
 
 # Each subdirectory must supply rules for building sources it contributes
 Startup/%.o: ../Startup/%.S
-	@	@	riscv-none-embed-gcc -march=rv32ecxw -mabi=ilp32e -msmall-data-limit=0 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -x assembler-with-cpp -I"C:\Users\Mika\Programmieren\MounRiver\ch32v003-main\C++\Use MRS Create C++ project-example\CH32V003F4P6\Startup" -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -c -o "$@" "$<"
+	@	@	riscv-none-embed-gcc -march=rv32ecxw -mabi=ilp32e -msmall-data-limit=0 -msave-restore -O0 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -x assembler-with-cpp -I"C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\Startup" -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -c -o "$@" "$<"
 	@	@
 

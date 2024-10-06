@@ -1,31 +1,47 @@
-#include "button.h"
+
+
+#include "button/button.h"
 
 
 
-Button::Button(GPIO_TypeDef* port, uint16_t pin)
+Button::Button(GPIO_TypeDef* port, uint16_t pin, bool inverted)
 {
     this->port = port;
     this->pin = pin;
-}
+    this->inverted = inverted;
 
-void Button::init()
-{
+    this->doubleClickEnabled = true;
+    this->lastBounceState = false;
+
     // Button debouncing
     bool lastBounceState = false;
+    bool debouncedState = false;
     this->lastBounceTime = 0;
 
     // Button press tracking
-    this->buttonState = NO_PRESS;
-    this->internalState = IDLE;
+    this->buttonState = ButtonState::NO_PRESS;
+    this->internalState = ButtonInternalState::IDLE;
 
     // Timing for press types
     this->lastEventTime = 0;
 }
 
+void Button::init()
+{
+    // GPIO initialization
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    GPIO_InitStructure.GPIO_Pin = this->pin;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(this->port, &GPIO_InitStructure);
+
+}
+
 
 bool Button::readButton()
 {
-    return GPIO_ReadInputDataBit(this->port, this->pin);
+    return this->inverted xor GPIO_ReadInputDataBit(this->port, this->pin);
 }
 
 /***********************************************
@@ -47,7 +63,9 @@ void Button::update(uint32_t sysTimeMS){
     if (reading != this->lastBounceState){
         this->lastBounceTime = sysTimeMS;
         this->lastBounceState = reading;
-        return;
+    }
+    else{
+        this->debouncedState = reading;
     }
     
 
@@ -55,7 +73,7 @@ void Button::update(uint32_t sysTimeMS){
 
     switch(this->internalState){
         case IDLE:
-            if(reading){
+            if(this->debouncedState){
                 this->internalState = FIRST_PRESS;
                 this->lastEventTime = sysTimeMS;
             }
@@ -63,10 +81,10 @@ void Button::update(uint32_t sysTimeMS){
         case FIRST_PRESS:
             // Long press detection
             if (stateUpTime > LONG_PRESS_THRESHOLD_MS){
-                this->internalState = IDLE;
+                this->internalState = SECOND_PRESS;
                 this->buttonState = LONG_PRESS;
             }
-            else if(!reading){
+            else if(!this->debouncedState){
                 if (this->doubleClickEnabled){
                     this->internalState = FIRST_RELEASE;
                     this->lastEventTime = sysTimeMS;
@@ -82,13 +100,13 @@ void Button::update(uint32_t sysTimeMS){
                 this->internalState = IDLE;
                 this->buttonState = SHORT_PRESS;
             }
-            else if(reading){
+            else if(this->debouncedState){
                 this->internalState = SECOND_PRESS;
                 this->buttonState = DOUBLE_PRESS;
             }
             break;
         case SECOND_PRESS:
-            if(!reading){
+            if(!this->debouncedState){
                 this->internalState = IDLE;
             }
             break;
