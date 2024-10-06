@@ -20,9 +20,10 @@
 
 */
 
+#include <led/standard_led.h>
+#include <led/pwm_led.h>
 #include "debug.h"
 #include "button/button.h"
-#include "led/led.h"
 
 
 /* Global define */
@@ -30,6 +31,15 @@
 
 /* Global Variable */
 volatile uint32_t msTicks = 0;
+
+Button button(GPIOD, BUTTON_PIN, true);
+StandardLED errorLED(GPIOD, ERROR_LED, true);
+PWM_LED statusLED(GPIOD, STATUS_LED, &TIM1->CH4CVR);
+
+
+
+
+
 
 void GPIO_Clock_Init(void){
     RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOC|RCC_APB2Periph_GPIOD, ENABLE);
@@ -58,6 +68,9 @@ void SysTick_Handler(void)
 {
     SysTick->SR = 0;    // Reset the Status Registers
     msTicks++;
+    button.update(msTicks);
+    statusLED.update(msTicks);
+    errorLED.update(msTicks);
 }
 
 
@@ -122,67 +135,28 @@ int main(void)
 {
     GPIO_Clock_Init();
     setup_interrupt();
-    Button button(GPIOD, BUTTON_PIN, true);
+
     button.init();
-
+    errorLED.init();
     pwmPD4init();
-    LED statusLED(GPIOD, STATUS_LED, &TIM1->CH4CVR);
+    statusLED.init();
 
-    // LED errorLED(GPIOD, ERROR_LED, TIM1, 2);
-    // errorLED.init();
-
-    // For testing, turn on the error LED
-    GPIO_InitTypeDef GPIO_InitStructure;
-    GPIO_InitStructure.GPIO_Pin = ERROR_LED;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOD, &GPIO_InitStructure);
-    GPIO_ResetBits(GPIOD, ERROR_LED);
-
-    // GPIO_InitStructure.GPIO_Pin = STATUS_LED;
-    // GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    // GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    // GPIO_Init(GPIOD, &GPIO_InitStructure);
-    // GPIO_ResetBits(GPIOD, STATUS_LED);
-
+    ButtonState buttonState;
 
     for(ever)
     {   
+        buttonState = button.getButtonState();
+        if (buttonState != ButtonState::NO_PRESS){
+            // User Pressed the Button
+            if (buttonState == ButtonState::SHORT_PRESS)
+                errorLED.blink(1000, 1, 50);
+            else if (buttonState == ButtonState::DOUBLE_PRESS)
+                errorLED.blink(500, 5, 50);
+            else if (buttonState == ButtonState::LONG_PRESS)
+                errorLED.blink(2000, 2, 50);
 
-        // if (button.readButton()){
-        //     GPIO_SetBits(GPIOD, STATUS_LED);
-        // }
-        // else{
-        //     GPIO_ResetBits(GPIOD, STATUS_LED);
-        // }
-
-        uint8_t brightness = (msTicks %10000)/10;
-        statusLED.setBrightness(brightness);
-
-         if(msTicks % 1000 > 500){
-             GPIO_SetBits(GPIOD, ERROR_LED);
-         }
-         else {
-             GPIO_ResetBits(GPIOD, ERROR_LED);
         }
 
-//         button.update(msTicks);
-//         ButtonState buttonState = button.getButtonState();
-//
-//
-//         if (buttonState == SHORT_PRESS){
-//             statusLED.setBrightness(100);
-//             GPIO_SetBits(GPIOD, ERROR_LED);
-//
-//         }
-//         else if (buttonState == LONG_PRESS){
-//
-//             statusLED.setBrightness(0);
-//             GPIO_SetBits(GPIOD, ERROR_LED);
-//         }
-//         else if (buttonState == DOUBLE_PRESS){
-//             statusLED.setBrightness(50);
-//             GPIO_ResetBits(GPIOD, ERROR_LED);
-//         }
+
     }
 }
