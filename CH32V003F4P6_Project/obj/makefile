@@ -9,7 +9,9 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include User/usart/subdir.mk
 -include User/led/subdir.mk
+-include User/eeprom/subdir.mk
 -include User/button/subdir.mk
 -include User/subdir.mk
 -include Startup/subdir.mk

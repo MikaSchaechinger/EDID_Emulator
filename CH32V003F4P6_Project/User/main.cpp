@@ -25,6 +25,7 @@
 #include "debug.h"
 #include <button/button.h>
 #include <usart/usart.h>
+#include <eeprom/edid_manager.h>
 
 
 
@@ -34,6 +35,7 @@
 /* Global Variable */
 volatile uint32_t msTicks = 0;
 
+EDIDManager edidManager(GPIOC, EEPROM_ADDR_SEL, GPIOC, EEPROM_WRITE_PROTECT);
 Button button(GPIOD, BUTTON_PIN, true);
 StandardLED errorLED(GPIOD, ERROR_LED, true);
 PWM_LED statusLED(GPIOD, STATUS_LED, &TIM1->CH4CVR);

@@ -39,5 +39,7 @@ Peripheral/src \
 Startup \
 User/button \
 User \
+User/eeprom \
 User/led \
+User/usart \
 

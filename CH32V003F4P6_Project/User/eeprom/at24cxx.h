@@ -7,7 +7,6 @@
 
 
 
-
 class AT24CXX{
 
 private:
@@ -16,6 +15,7 @@ private:
 
 
 public: 
+    // Address of the EEPROM and the size of the EEPROM in bytes
     AT24CXX(uint8_t address, uint16_t size);
 
     // The I2C address of the EEPROM (not shifted)
