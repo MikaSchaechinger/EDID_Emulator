@@ -7,20 +7,12 @@ class LED {
 private:
     GPIO_TypeDef* port;  // LED GPIO-Port
     uint16_t pin;        // LED GPIO-Pin
-    TIM_TypeDef* timer;  // Timer for PWM
-    uint8_t pwmChannel;  // PWM Channel for LED
-
-    uint8_t brightness;  // Current brightness of the LED (0-100%)
-
-    uint8_t (*brightnessFunction)(uint32_t timeMS);  // Function to control the brightness of the LED
+    __IO uint32_t* brightnessRegister;  // Register for the brightness of the LED
 
 public:
 
     // Constructor
-    LED(GPIO_TypeDef* port, uint16_t pin, TIM_TypeDef* timer, uint8_t pwmChannel);
-
-    // Initialize the LED
-    void init();
+    LED(GPIO_TypeDef* port, uint16_t pin, __IO uint32_t* brightnessRegister);
 
     // Set the brightness of the LED (0-100%)
     void setBrightness(uint8_t brightness);

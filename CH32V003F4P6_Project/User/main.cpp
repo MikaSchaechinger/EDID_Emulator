@@ -69,6 +69,48 @@ void setupSysTickTimer(){
 }
 
 
+void pwmPD4init(){
+    // Remap TIM1_RM to 11  (Datasheet page 55, table Table 7-8 TIM1 alternate function remapping)
+    // PD4 gets TIM1_CH4
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
+    AFIO->PCFR1 &= ~(AFIO_PCFR1_TIM1_REMAP);
+    AFIO->PCFR1 |= AFIO_PCFR1_TIM1_REMAP_1;     // set first bit to 1
+    AFIO->PCFR1 |= AFIO_PCFR1_TIM1_REMAP_0;     // set second bit to 1
+    // AFIO->PCFR1 |= AFIO_PCFR1_TIM1_REMAP_FULLREMAP;
+
+    GPIO_InitTypeDef GPIO_InitStructure = {0};
+    TIM_OCInitTypeDef TIM_OCInitStructure = {0};
+    TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure = {0};
+
+    RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOD | RCC_APB2Periph_TIM1, ENABLE );
+
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;     // Alternate Function Push-Pull
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOD, &GPIO_InitStructure);
+
+    TIM_TimeBaseInitStructure.TIM_Period = 1000;  // Set the period for PWM. Count value from 0 to 100
+    TIM_TimeBaseInitStructure.TIM_Prescaler = 480 - 1;  // Set the prescaler (depending on system clock)
+    TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+    TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
+    TIM_TimeBaseInit(TIM1, &TIM_TimeBaseInitStructure);
+
+    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+    TIM_OCInitStructure.TIM_Pulse = 1;  // Set the initial duty cycle to 50%
+    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;   //
+
+    // Select Channel 4
+    TIM_OC4Init(TIM1, &TIM_OCInitStructure);
+
+    // Enable PWM
+    TIM_CtrlPWMOutputs(TIM1, ENABLE);
+    TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
+    TIM_ARRPreloadConfig(TIM1, ENABLE);
+    TIM_Cmd(TIM1, ENABLE);
+}
+
+
 /*********************************************************************
  * @fn      main
  *
@@ -81,10 +123,12 @@ int main(void)
     GPIO_Clock_Init();
     setup_interrupt();
     Button button(GPIOD, BUTTON_PIN, true);
-    // //LED statusLED(GPIOD, STATUS_LED, TIM1, 1);
-    // LED errorLED(GPIOD, ERROR_LED, TIM1, 2);
     button.init();
-    // //statusLED.init();
+
+    pwmPD4init();
+    LED statusLED(GPIOD, STATUS_LED, &TIM1->CH4CVR);
+
+    // LED errorLED(GPIOD, ERROR_LED, TIM1, 2);
     // errorLED.init();
 
     // For testing, turn on the error LED
@@ -95,11 +139,11 @@ int main(void)
     GPIO_Init(GPIOD, &GPIO_InitStructure);
     GPIO_ResetBits(GPIOD, ERROR_LED);
 
-    GPIO_InitStructure.GPIO_Pin = STATUS_LED;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOD, &GPIO_InitStructure);
-    GPIO_ResetBits(GPIOD, STATUS_LED);
+    // GPIO_InitStructure.GPIO_Pin = STATUS_LED;
+    // GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    // GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    // GPIO_Init(GPIOD, &GPIO_InitStructure);
+    // GPIO_ResetBits(GPIOD, STATUS_LED);
 
 
     for(ever)
@@ -112,43 +156,33 @@ int main(void)
         //     GPIO_ResetBits(GPIOD, STATUS_LED);
         // }
 
+        uint8_t brightness = (msTicks %10000)/10;
+        statusLED.setBrightness(brightness);
 
-//         if(msTicks % 1000 > 500){
-//             GPIO_SetBits(GPIOD, ERROR_LED);
-//         }
-//         else {
-//             GPIO_ResetBits(GPIOD, ERROR_LED);
-//        }
-
-         button.update(msTicks);
-         ButtonState buttonState = button.getButtonState();
-
-//         if (buttonState == NO_PRESS){
-//             GPIO_SetBits(GPIOD, STATUS_LED);
-//             GPIO_SetBits(GPIOD, ERROR_LED);
-//         }
-
-         if (buttonState == SHORT_PRESS){
-             GPIO_ResetBits(GPIOD, STATUS_LED);
-             GPIO_SetBits(GPIOD, ERROR_LED);
-
-         }
-         else if (buttonState == LONG_PRESS){
-
-             GPIO_SetBits(GPIOD, STATUS_LED);
+         if(msTicks % 1000 > 500){
              GPIO_SetBits(GPIOD, ERROR_LED);
          }
-         else if (buttonState == DOUBLE_PRESS){
-             GPIO_SetBits(GPIOD, STATUS_LED);
+         else {
              GPIO_ResetBits(GPIOD, ERROR_LED);
-         }
+        }
 
-        //  if(SysTick->CNT%100000 > 100000){
-        //      errorLED.setBrightness(100);
-        //  }
-        //  else{
-        //      errorLED.setBrightness(0);
-        //  }
-
+//         button.update(msTicks);
+//         ButtonState buttonState = button.getButtonState();
+//
+//
+//         if (buttonState == SHORT_PRESS){
+//             statusLED.setBrightness(100);
+//             GPIO_SetBits(GPIOD, ERROR_LED);
+//
+//         }
+//         else if (buttonState == LONG_PRESS){
+//
+//             statusLED.setBrightness(0);
+//             GPIO_SetBits(GPIOD, ERROR_LED);
+//         }
+//         else if (buttonState == DOUBLE_PRESS){
+//             statusLED.setBrightness(50);
+//             GPIO_ResetBits(GPIOD, ERROR_LED);
+//         }
     }
 }
