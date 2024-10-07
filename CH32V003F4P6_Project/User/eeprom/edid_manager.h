@@ -5,6 +5,7 @@
 
 #include <eeprom/at24cxx.h>
 #include <eeprom/edid_struct.h>
+#include <eeprom/metadata_struct.h>
 
 
 
@@ -26,13 +27,15 @@
 #define EEPROM_ADDR_EXTRA 0x51
 
 
+#define EEPROM_CLEAR_PASSWORD 0x11335577
+
 
 class EDIDManager {
 
 private:
 
     Slot ramSlot;   // RAM Slot for the current EDID Slot
-    uint8_t metaDataBuffer[16];
+    Metadata ramMetaData;  // RAM Meta Data for the current EDID Slot
 
     GPIO_TypeDef* addrCtlPort;
     uint16_t addrCtlPin;
@@ -41,9 +44,32 @@ private:
     uint16_t wpPin;
 
     AT24CXX eeprom;
+    uint32_t clearProtectionPassword;
 
     void setDefaultAddress();
     void setExtraAddress();
+
+    // GPIO: 1: Enabled; 0: Disabled
+    void writeProtect(bool enable);
+
+    void cleanRamSlot();
+
+    void cleanRamMetaData();
+
+    // Read the Slot and Meta Data from the EEPROM to the RAM (No Write Protect Check, Address change)
+    void slotToRAM(uint8_t slot);
+
+    // Write the Slot and Meta Data from the RAM to the EEPROM (No Write Protect Check, Address change)
+    void ramToSlot(uint8_t slot);
+
+    // True: Write Protect is applied; False: Write Protect is disabled
+    u8 getSlotMetaDataFlags(uint8_t slot);
+
+    // Enable/Disable Write Protect for a Slot
+    void setSlotWriteProtect(uint8_t slot, bool enable);
+
+
+
 
 public:
 
@@ -51,6 +77,32 @@ public:
     
     void init();
 
+    bool cleanSlot(uint8_t slot);
+
+    void disableEEPROMClearProtection();
+
+    bool cleanEEPROM();
+
+    // Load the EDID and MetaData from the EEPROM to the RAM
+    bool loadSlot(uint8_t slot);
+
+    // Save the EDID and MetaData from the RAM to the EEPROM
+    bool saveSlot(uint8_t slot);
+
+
+    u8* getEDIDBuffer();
+
+
+
+    void writeSlotTo(uint8_t slot, uint8_t targetSlot);
+
+    // Copys the EDID Data from the Slot x to Slot 0
+    void applySlot(uint8_t slot);
+
+    // Copys the EDID Data from the Monitor to slot
+    void cloneToSlot(uint8_t slot);
+
+    
 
 };
 

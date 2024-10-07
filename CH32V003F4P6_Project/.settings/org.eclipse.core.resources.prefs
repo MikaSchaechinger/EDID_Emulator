@@ -8,6 +8,7 @@ encoding//User/eeprom/edid_manager.h=GBK
 encoding//User/eeprom/edid_struct.h=GBK
 encoding//User/eeprom/i2c.cpp=GBK
 encoding//User/eeprom/i2c.h=GBK
+encoding//User/eeprom/metadata_struct.h=GBK
 encoding//User/led/pwm_led.cpp=GBK
 encoding//User/led/pwm_led.h=GBK
 encoding//User/led/standard_led.cpp=GBK
