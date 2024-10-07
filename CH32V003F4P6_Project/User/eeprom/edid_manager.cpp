@@ -248,10 +248,44 @@ void EDIDManager:: setSlotWriteProtect(uint8_t slot, bool enable) {
 }
 
 
+EEPROM_ERROR EDIDManager::readMonitorEDID() {
+    // Change the EEPROM Adress by the GPIO, but keep the I2C
+    GPIO_SetBits(this->addrCtlPort, this->addrCtlPin);
+    eeprom.setI2CAddress(MONITOR_ADDRESS);
+    // Cleat the RAM Slot
+    this->cleanRamSlot();
+    // Read the EDID from the Monitor
+    eeprom.readBytes(0, ramSlot.data, NORMAL_EDID_SIZE);
+    // Check if edid is a extended edid
+    bool isExtended = false;
+    if (ramSlot.edid.extensionFlag > 0){
+        // EDID is extended. Read the rest of the EDID
+        eeprom.readBytes(NORMAL_EDID_SIZE, ramSlot.data + NORMAL_EDID_SIZE, EDID_EXTENSION_SIZE);
+        isExtended = true;
+    }
+
+    // TODO: readBytes must return error code, so we can check if the monitor is connected
+    // if (!success) {
+    //     // Abort, set the default address and return
+    //     this->setDefaultAddress();
+    //     return EEPROM_ERROR::MONITOR_NO_ANSWER;
+    // }
+    // Create the Meta Data
+    this->cleanRamMetaData();
+
+    // Set the EDID Valid Flag
+    ramMetaData.edid_valid = 1;
+    ramMetaData.write_protect = 0;
+    ramMetaData.clone_status = 1;   
+    if (isExtended) {
+        ramMetaData.edid_extended = 1;
+    } else {
+        ramMetaData.edid_extended = 0;
+    }
 
 
-
-
-
+    this->setDefaultAddress();
+    return EEPROM_ERROR::SUCCESS;
+}
 
 

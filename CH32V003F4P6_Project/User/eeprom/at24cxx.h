@@ -6,6 +6,14 @@
 #include <eeprom/i2c.h>
 
 
+#define TIMEOUT_LIMIT 4800000  // Timeout limit for I2C communication
+
+typedef enum{
+    SUCCESS,
+    TIMEOUT_ERROR
+} COMMUNICATION_ERROR;
+
+
 
 class AT24CXX{
 
@@ -26,11 +34,11 @@ public:
     
     uint8_t readOneByte(uint16_t addr);
 
-    void writeOneByte(uint16_t addr, uint8_t data);
+    COMMUNICATION_ERROR writeOneByte(uint16_t addr, uint8_t data);
 
-    void readBytes(uint16_t addr, uint8_t* buffer, uint16_t length);
+    COMMUNICATION_ERROR readBytes(uint16_t addr, uint8_t* buffer, uint16_t length);
 
-    void writeBytes(uint16_t addr, uint8_t* buffer, uint16_t length);
+    COMMUNICATION_ERROR writeBytes(uint16_t addr, uint8_t* buffer, uint16_t length);
 };
 
 

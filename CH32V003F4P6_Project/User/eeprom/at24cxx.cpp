@@ -54,7 +54,7 @@ uint8_t AT24CXX::readOneByte(uint16_t addr)
 }
 
 
-void AT24CXX::writeOneByte(uint16_t addr, uint8_t data)
+COMMUNICATION_ERROR AT24CXX::writeOneByte(uint16_t addr, uint8_t data)
 {
     // Wait until the I2C bus is no longer busy
     while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET);
@@ -77,7 +77,7 @@ void AT24CXX::writeOneByte(uint16_t addr, uint8_t data)
 }
 
 
-void AT24CXX::readBytes(uint16_t addr, uint8_t* buffer, uint16_t length)
+COMMUNICATION_ERROR AT24CXX::readBytes(uint16_t addr, uint8_t* buffer, uint16_t length)
 {
     // Wait until the I2C bus is no longer busy
     while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET);
@@ -129,7 +129,7 @@ void AT24CXX::readBytes(uint16_t addr, uint8_t* buffer, uint16_t length)
 }
 
 
-void AT24CXX::writeBytes(uint16_t addr, uint8_t* buffer, uint16_t length)
+COMMUNICATION_ERROR AT24CXX::writeBytes(uint16_t addr, uint8_t* buffer, uint16_t length)
 {
     // Wait until the I2C bus is no longer busy
     while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET);

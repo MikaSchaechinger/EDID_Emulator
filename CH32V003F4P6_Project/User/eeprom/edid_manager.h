@@ -8,7 +8,7 @@
 #include <eeprom/metadata_struct.h>
 
 
-
+#define MONITOR_ADDRESS 0x50 // 7 Bit Address of the Monitor
 // Memory Map of the EEPROM
 // Defined by EEPROM Model
 #define EDID_START_ADDR     0x0000          // Start Address of the EDID Slots
@@ -16,6 +16,8 @@
 #define EEPROM_SIZE         4096            // 4KB EEPROM Size
 
 // Defined by the EDID Standard and own memory layout
+#define NORMAL_EDID_SIZE    128             // 128 Bytes for the Normal EDID
+#define EDID_EXTENSION_SIZE 128             // 128 Bytes for the Extended EDID
 #define EDID_SLOT_SIZE      256             // 256 Bytes for each EDID Slot
 #define EDID_META_DATA_ADDR EDID_SLOT_SIZE * EDID_SLOT_COUNT - 1  // (3839) Start Address of the Meta Data
 #define EDID_META_DATA_SIZE 16              // 16 Bytes for the Meta Data per Slot
@@ -48,7 +50,6 @@ typedef enum{
 class EDIDManager {
 
 private:
-
     Slot ramSlot;   // RAM Slot for the current EDID Slot
     Metadata ramMetaData;  // RAM Meta Data for the current EDID Slot
 
@@ -76,6 +77,9 @@ private:
 
     // Write the Slot and Meta Data from the RAM to the EEPROM (No Write Protect Check, Address change)
     void ramToSlot(uint8_t slot);
+
+    // Read the EDID from the Monitor to the RAM
+    EEPROM_ERROR readMonitorEDID();
 
     // True: Write Protect is applied; False: Write Protect is disabled
     u8 getSlotMetaDataFlags(uint8_t slot);
