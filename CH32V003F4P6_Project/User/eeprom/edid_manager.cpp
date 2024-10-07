@@ -34,9 +34,9 @@ void EDIDManager::init() {
 }
 
 
-bool EDIDManager::cleanSlot(uint8_t slot) {
+EEPROM_ERROR EDIDManager::cleanSlot(uint8_t slot) {
     // Check if the slot is valid (Slot 0 to 14, 15 has the meta data)
-    if (slot >= EDID_SLOT_COUNT) return false;
+    if (slot >= EDID_SLOT_COUNT) return EEPROM_ERROR::SLOT_OUT_OF_RANGE;
     // Apply the extra address, so there is no conflict with the I2C PC - Monitor
     this->setExtraAddress();
     // Check if write protect is enabled
@@ -44,7 +44,7 @@ bool EDIDManager::cleanSlot(uint8_t slot) {
     if (flags & WRITE_PROTECT_MASK) {
         // Abort, set the default address and return
         this->setDefaultAddress();
-        return false;
+        return EEPROM_ERROR::SLOT_WRITE_PROTECT;
     }
     // Clean the slot in the EEPROM
     for (uint16_t i = 0; i < EDID_SLOT_SIZE; i++) 
@@ -54,14 +54,14 @@ bool EDIDManager::cleanSlot(uint8_t slot) {
         eeprom.writeOneByte(EDID_META_DATA_ADDR + slot * EDID_META_DATA_SIZE + i, 0);
     // Apply the default address, so the PC can read the EDID
     this->setDefaultAddress();
-    return true;
+    return EEPROM_ERROR::SUCCESS;
 }
 
 
-bool EDIDManager::cleanEEPROM() {
+EEPROM_ERROR EDIDManager::cleanEEPROM() {
     // Check if the user has disabled the EEPROM protection
     if (this->clearProtectionPassword != EEPROM_CLEAR_PASSWORD) {
-        return false;
+        return EEPROM_ERROR::EEPROM_CLEAR_PROTECTION;
     }
     // Apply the extra address, so there is no conflict with the I2C PC - Monitor
     this->setExtraAddress();
@@ -70,26 +70,26 @@ bool EDIDManager::cleanEEPROM() {
         eeprom.writeOneByte(i, 0);
     // Apply the default address, so the PC can read the EDID
     this->setDefaultAddress();
-    return true;
+    return EEPROM_ERROR::SUCCESS;
 }
 
 
-bool EDIDManager::loadSlot(uint8_t slot) {
+EEPROM_ERROR EDIDManager::loadSlot(uint8_t slot) {
     // Check if the slot is valid (Slot 0 to 14, 15 has the meta data)
-    if (slot >= EDID_SLOT_COUNT) return false;
+    if (slot >= EDID_SLOT_COUNT) return EEPROM_ERROR::SLOT_OUT_OF_RANGE;
     // Apply the extra address, so there is no conflict with the I2C PC - Monitor
     this->setExtraAddress();   
     // Read the slot from the EEPROM
     this->slotToRAM(slot);
     // Apply the default address, so the PC can read the EDID
     this->setDefaultAddress();
-    return true;
+    return EEPROM_ERROR::SUCCESS;
 }
 
 
-bool EDIDManager::saveSlot(uint8_t slot) {
+EEPROM_ERROR EDIDManager::saveSlot(uint8_t slot) {
     // Check if the slot is valid (Slot 0 to 14, 15 has the meta data)
-    if (slot >= EDID_SLOT_COUNT) return false;
+    if (slot >= EDID_SLOT_COUNT) return EEPROM_ERROR::SLOT_OUT_OF_RANGE;
     // Apply the extra address, so there is no conflict with the I2C PC - Monitor
     this->setExtraAddress();   
     // Check if write protect is enabled
@@ -97,16 +97,70 @@ bool EDIDManager::saveSlot(uint8_t slot) {
     if (flags & WRITE_PROTECT_MASK) {
         // Abort, set the default address and return
         this->setDefaultAddress();
-        return false;
+        return EEPROM_ERROR::SLOT_WRITE_PROTECT;
     }
     // Write the slot to the EEPROM
     this->ramToSlot(slot);
     // Apply the default address, so the PC can read the EDID
     this->setDefaultAddress();
-    return true;
+    return EEPROM_ERROR::SUCCESS;
 }
 
 
+EEPROM_ERROR EDIDManager::moveSlot(uint8_t slot, uint8_t targetSlot){
+    // Check if the slot is valid (Slot 0 to 14, 15 has the meta data)
+    if (slot >= EDID_SLOT_COUNT || targetSlot >= EDID_SLOT_COUNT) return EEPROM_ERROR::SLOT_OUT_OF_RANGE;
+    // Abort if the slots are the same
+    if (slot == targetSlot) return EEPROM_ERROR::SAME_SLOT;
+    // Apply the extra address, so there is no conflict with the I2C PC - Monitor
+    this->setExtraAddress();
+    // Check if write protect is enabled
+    u8 flags = this->getSlotMetaDataFlags(targetSlot);
+    if (flags & WRITE_PROTECT_MASK) {
+        // Abort, set the default address and return
+        this->setDefaultAddress();
+        return EEPROM_ERROR::SLOT_WRITE_PROTECT;
+    }
+    // Read the slot from the EEPROM
+    this->slotToRAM(slot);
+    // Write the slot to the EEPROM
+    this->ramToSlot(targetSlot);
+    // Apply the default address, so the PC can read the EDID
+    this->setDefaultAddress();
+    return EEPROM_ERROR::SUCCESS;
+}
+
+
+EEPROM_ERROR EDIDManager::applySlot(uint8_t slot){
+    return this->moveSlot(slot, 0);     // Has all checks
+}
+
+
+EEPROM_ERROR EDIDManager::cloneToSlot(uint8_t slot) {
+    // Check if the slot is valid (Slot 0 to 14, 15 has the meta data)
+    if (slot >= EDID_SLOT_COUNT) return EEPROM_ERROR::SLOT_OUT_OF_RANGE;
+    // Apply the extra address, so there is no conflict with the I2C PC - Monitor
+    this->setExtraAddress();
+    // Check if write protect is enabled
+    u8 flags = this->getSlotMetaDataFlags(slot);
+    if (flags & WRITE_PROTECT_MASK) {
+        // Abort, set the default address and return
+        this->setDefaultAddress();
+        return EEPROM_ERROR::SLOT_WRITE_PROTECT;
+    }
+    bool success = this->readMonitorEDID();
+    if (!success) {
+        // Abort, set the default address and return
+        this->setDefaultAddress();
+        return EEPROM_ERROR::MONITOR_NO_ANSWER;
+    }
+    // Write the slot in the RAM to the EEPROM
+    this->ramToSlot(slot);
+    // Apply the default address, so the PC can read the EDID
+    this->setDefaultAddress();
+
+    return EEPROM_ERROR::SUCCESS;
+}
 
 
 

@@ -30,6 +30,21 @@
 #define EEPROM_CLEAR_PASSWORD 0x11335577
 
 
+
+typedef enum{
+    SUCCESS,
+    SLOT_OUT_OF_RANGE,
+    SAME_SLOT,
+    SLOT_WRITE_PROTECT,
+    MONITOR_NO_ANSWER,
+    EEPROM_CLEAR_PROTECTION,
+} EEPROM_ERROR;
+
+
+
+
+
+
 class EDIDManager {
 
 private:
@@ -68,7 +83,7 @@ private:
     // Enable/Disable Write Protect for a Slot
     void setSlotWriteProtect(uint8_t slot, bool enable);
 
-
+    EEPROM_ERROR readMonitorEDID();
 
 
 public:
@@ -77,30 +92,29 @@ public:
     
     void init();
 
-    bool cleanSlot(uint8_t slot);
+    EEPROM_ERROR cleanSlot(uint8_t slot);
 
     void disableEEPROMClearProtection();
 
-    bool cleanEEPROM();
+    EEPROM_ERROR cleanEEPROM();
 
     // Load the EDID and MetaData from the EEPROM to the RAM
-    bool loadSlot(uint8_t slot);
+    EEPROM_ERROR loadSlot(uint8_t slot);
 
     // Save the EDID and MetaData from the RAM to the EEPROM
-    bool saveSlot(uint8_t slot);
+    EEPROM_ERROR saveSlot(uint8_t slot);
 
 
     u8* getEDIDBuffer();
 
 
-
-    void writeSlotTo(uint8_t slot, uint8_t targetSlot);
+    EEPROM_ERROR moveSlot(uint8_t slot, uint8_t targetSlot);
 
     // Copys the EDID Data from the Slot x to Slot 0
-    void applySlot(uint8_t slot);
+    EEPROM_ERROR applySlot(uint8_t slot);
 
     // Copys the EDID Data from the Monitor to slot
-    void cloneToSlot(uint8_t slot);
+    EEPROM_ERROR cloneToSlot(uint8_t slot);
 
     
 
