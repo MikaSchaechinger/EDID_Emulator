@@ -1,25 +1,10 @@
 #include <usart/usart.h>
 
 
-void USART1_IRQHandler(void)
-{
-    // Interrupt was triggered by RXNE -> Receive Data Register Not Empty
-
-    // Check if the interrupt was triggered by RXNE
-    if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
-    {
-        // Read the received byte from the USART
-        uint8_t receivedByte = USART_ReceiveData(USART1);
-
-        // Echo the received byte back
-        USART_SendData(USART1, receivedByte);
-    }
-}
 
 
 
-void USARTx_CFG(void)
-{
+void USARTx_CFG(void) {
     GPIO_InitTypeDef  GPIO_InitStructure = {0};
     USART_InitTypeDef USART_InitStructure = {0};
     NVIC_InitTypeDef  NVIC_InitStructure = {0};
@@ -55,4 +40,46 @@ void USARTx_CFG(void)
     NVIC_Init(&NVIC_InitStructure);;
 
     USART_Cmd(USART1, ENABLE);  // Enable the USART1 peripheral
+}
+
+
+void USART_SendString(const char* str, bool noNewLine) {
+    while (*str != '\0')
+    {
+        USART_SendData(USART1, *str);
+        str++;
+        while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+    }
+
+    if (!noNewLine) {
+        USART_SendData(USART1, '\n');
+        while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+    }
+}
+
+
+void USART_SendHex(uint8_t* byte, uint16_t length) {
+    if (length == 0) return;
+    char buffer1[2];
+    char buffer2[2];
+    char* sendBuffer = buffer1;
+    char* workBuffer = buffer2;
+
+    // Calculate the first byte
+    byteToHexString(sendBuffer, *byte);
+
+    for (uint16_t i = 0; i < length; i++) {
+        USART_SendData(USART1, sendBuffer[0]);
+        while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+
+        USART_SendData(USART1, sendBuffer[1]);
+        // calculate the next byte
+        byteToHexString(workBuffer, *(++byte));
+        // Now wait for the second byte halfe to be sent
+        while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+        // Swap the buffers
+        char* temp = sendBuffer;
+        sendBuffer = workBuffer;
+        workBuffer = temp;
+    }
 }
