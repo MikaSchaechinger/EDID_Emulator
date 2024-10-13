@@ -39,7 +39,9 @@ Peripheral/src \
 Startup \
 User/button \
 User \
+User/communication \
 User/eeprom \
 User/led \
+User/string \
 User/usart \
 

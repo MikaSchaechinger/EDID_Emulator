@@ -8,13 +8,16 @@
 
 #define TIMEOUT_LIMIT 4800000  // Timeout limit for I2C communication
 
-typedef enum{
+namespace I2C{
+    typedef enum{
     SUCCESS,        // No error occurred
     TIMEOUT_ERROR,  // Timeout occurred
     NACK_ERROR,     // Not acknowledge error
     BUSY_ERROR,     // Bus busy error
     UNKNOWN_ERROR   // Unknown error
-} COMMUNICATION_ERROR;
+    } State;
+}
+
 
 
 
@@ -38,9 +41,11 @@ public:
     // Get the I2C address of the EEPROM (not shifted)
     uint8_t getI2CAddress();
     
-    COMMUNICATION_ERROR readBytes(uint16_t addr, uint8_t* buffer, uint16_t length);
+    I2C::State readBytes(uint16_t addr, uint8_t* buffer, uint16_t length);
 
-    COMMUNICATION_ERROR writeBytes(uint16_t addr, uint8_t* buffer, uint16_t length);
+    I2C::State writeBytes(uint16_t addr, uint8_t* buffer, uint16_t length);
+
+    I2C::State clearBytes(uint16_t addr, uint16_t length, uint8_t insert=0);
 };
 
 

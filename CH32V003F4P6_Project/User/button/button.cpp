@@ -14,8 +14,8 @@ Button::Button(GPIO_TypeDef* port, uint16_t pin, bool inverted)
     this->lastBounceState = false;
 
     // Button debouncing
-    bool lastBounceState = false;
-    bool debouncedState = false;
+    this->lastBounceState = false;
+    this->debouncedState = false;
     this->lastBounceTime = 0;
 
     // Button press tracking

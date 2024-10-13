@@ -43,6 +43,11 @@ void USARTx_CFG(void) {
 }
 
 
+void USART_SendString(const std::string str, bool newLine) {
+    USART_SendString(str.c_str(), newLine);
+}   
+
+
 void USART_SendString(const char* str, bool newLine) {
     while (*str != '\0')
     {
@@ -82,4 +87,23 @@ void USART_SendHex(uint8_t* byte, uint16_t length) {
         sendBuffer = workBuffer;
         workBuffer = temp;
     }
+}
+
+
+void USART_SendInteger(int32_t value, bool newLine) {
+    char buffer[12];
+    intToString(buffer, value);
+    USART_SendString(buffer, newLine);
+}
+
+void USART_SendInteger(uint32_t value, bool newLine) {
+    char buffer[12];
+    uintToString(buffer, value);
+    USART_SendString(buffer, newLine);
+}
+
+
+void USART_SendEOF() {
+    USART_SendData(USART1, '\n');
+    while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
 }

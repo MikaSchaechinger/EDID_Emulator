@@ -61,6 +61,6 @@ OBJS += \
 
 # Each subdirectory must supply rules for building sources it contributes
 Peripheral/src/%.o: ../Peripheral/src/%.c
-	@	@	riscv-none-embed-gcc -march=rv32ecxw -mabi=ilp32e -msmall-data-limit=0 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -I"C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\Debug" -I"C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\Core" -I"C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User" -I"C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\Peripheral\inc" -std=gnu99 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -c -o "$@" "$<"
+	@	@	riscv-none-embed-gcc -march=rv32ecxw -mabi=ilp32e -msmall-data-limit=0 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized -I"C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\Debug" -I"C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\Core" -I"C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\User" -I"C:\Users\Mika\Programmieren\C++\EDID_Emulator\CH32V003F4P6_Project\Peripheral\inc" -std=gnu99 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -c -o "$@" "$<"
 	@	@
 

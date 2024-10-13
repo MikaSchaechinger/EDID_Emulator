@@ -32,15 +32,18 @@
 #define EEPROM_CLEAR_PASSWORD 0x11335577
 
 
-
-typedef enum{
+namespace EEPROM{typedef enum{
     SUCCESS,
     SLOT_OUT_OF_RANGE,
     SAME_SLOT,
     SLOT_WRITE_PROTECT,
     MONITOR_NO_ANSWER,
     EEPROM_CLEAR_PROTECTION,
-} EEPROM_ERROR;
+    COMMUNICATION_ERROR
+    } State;
+
+}
+
 
 
 
@@ -79,15 +82,13 @@ private:
     void ramToSlot(uint8_t slot);
 
     // Read the EDID from the Monitor to the RAM
-    EEPROM_ERROR readMonitorEDID();
+    EEPROM::State readMonitorEDID();
 
     // True: Write Protect is applied; False: Write Protect is disabled
-    u8 getSlotMetaDataFlags(uint8_t slot);
+    EEPROM::State getSlotMetaDataFlags(uint8_t slot, u8* flags);
 
     // Enable/Disable Write Protect for a Slot
-    void setSlotWriteProtect(uint8_t slot, bool enable);
-
-    EEPROM_ERROR readMonitorEDID();
+    bool setSlotWriteProtect(uint8_t slot, bool enable);
 
 
 public:
@@ -96,29 +97,29 @@ public:
     
     void init();
 
-    EEPROM_ERROR cleanSlot(uint8_t slot);
+    EEPROM::State cleanSlot(uint8_t slot, bool deepClean = false);
 
     void disableEEPROMClearProtection();
 
-    EEPROM_ERROR cleanEEPROM();
+    EEPROM::State cleanEEPROM();
 
     // Load the EDID and MetaData from the EEPROM to the RAM
-    EEPROM_ERROR loadSlot(uint8_t slot);
+    EEPROM::State loadSlot(uint8_t slot);
 
     // Save the EDID and MetaData from the RAM to the EEPROM
-    EEPROM_ERROR saveSlot(uint8_t slot);
+    EEPROM::State saveSlot(uint8_t slot);
 
 
     u8* getEDIDBuffer();
 
 
-    EEPROM_ERROR moveSlot(uint8_t slot, uint8_t targetSlot);
+    EEPROM::State moveSlot(uint8_t slot, uint8_t targetSlot);
 
     // Copys the EDID Data from the Slot x to Slot 0
-    EEPROM_ERROR applySlot(uint8_t slot);
+    EEPROM::State applySlot(uint8_t slot);
 
     // Copys the EDID Data from the Monitor to slot
-    EEPROM_ERROR cloneToSlot(uint8_t slot);
+    EEPROM::State cloneToSlot(uint8_t slot);
 
     
 

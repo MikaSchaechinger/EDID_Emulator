@@ -20,13 +20,15 @@
 
 */
 
+
 #include <led/standard_led.h>
 #include <led/pwm_led.h>
 #include "debug.h"
 #include <button/button.h>
 #include <usart/usart.h>
 #include <eeprom/edid_manager.h>
-
+#include <communication/communication_manager.h>
+#include <string>
 
 
 /* Global define */
@@ -39,6 +41,7 @@ EDIDManager edidManager(GPIOC, EEPROM_ADDR_SEL, GPIOC, EEPROM_WRITE_PROTECT);
 Button button(GPIOD, BUTTON_PIN, true);
 StandardLED errorLED(GPIOD, ERROR_LED, true);
 PWM_LED statusLED(GPIOD, STATUS_LED, &TIM1->CH4CVR);
+Communication::CommunicationManager comManager(&statusLED, &errorLED, &edidManager);
 
 
 
@@ -75,6 +78,20 @@ void SysTick_Handler(void)
     button.update(msTicks);
     statusLED.update(msTicks);
     errorLED.update(msTicks);
+}
+
+// USART1 Interrupt Handler
+void USART1_IRQHandler(void) {
+    // Interrupt was triggered by RXNE -> Receive Data Register Not Empty
+
+    // Check if the interrupt was triggered by RXNE
+    if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
+    {
+        // Read the received byte from the USART
+        uint8_t receivedByte = USART_ReceiveData(USART1);
+        // Give the received byte to the communication manager
+        comManager.newByte(receivedByte);
+    }
 }
 
 
@@ -148,23 +165,9 @@ int main(void)
     statusLED.init();
 
     setup_interrupt();  // Setup the interrupt for the button, LEDs and SysTick Timer
-
-    ButtonState buttonState;
-
+    comManager.init();
     for(ever)
     {   
-        buttonState = button.getButtonState();
-        if (buttonState != ButtonState::NO_PRESS){
-            // User Pressed the Button
-            if (buttonState == ButtonState::SHORT_PRESS)
-                errorLED.blink(1000, 1, 50);
-            else if (buttonState == ButtonState::DOUBLE_PRESS)
-                errorLED.blink(500, 5, 50);
-            else if (buttonState == ButtonState::LONG_PRESS)
-                errorLED.blink(2000, 2, 50);
-
-        }
-
-
+        comManager.update();
     }
 }
