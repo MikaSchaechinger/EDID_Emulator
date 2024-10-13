@@ -41,19 +41,19 @@ The Commands are:
 
 *Command*                       - *Description*
 
-version                         - Shows the Version of the Firmware
-help                            - Shows this help
-man <command>                   - Shows the manual for the given command 
+- version                         - Shows the Version of the Firmware
+- help                            - Shows this help
+- man <command>                   - Shows the manual for the given command 
 
-list                            - Lists all EDIDs status in the EEPROM
+- list                            - Lists all EDIDs status in the EEPROM
 
-read                            - Reads the EDID from the Slot 0 in hex
-read <EDID-SLOT-Index>          - Reads the EDID from given Slot in hex
-read <EDID-SLOT-Index> -hex     - Reads the EDID from given Slot in hex
-read <EDID-SLOT-Index> -json    - Reads the EDID from given Slot in json format with checksum
-read -all                       - Reads all EDIDs as json with checksum
+- read                            - Reads the EDID from the Slot 0 in hex
+- read <EDID-SLOT-Index>          - Reads the EDID from given Slot in hex
+- read <EDID-SLOT-Index> -hex     - Reads the EDID from given Slot in hex
+- read <EDID-SLOT-Index> -json    - Reads the EDID from given Slot in json format with checksum
+- read -all                       - Reads all EDIDs as json with checksum
 
-write <EDID-SLOT-Index> <EDID-Data> -f - Writes the EDID to the given Slot
+- write <EDID-SLOT-Index> <EDID-Data> -f - Writes the EDID to the given Slot
 
 
 ## Button Interface:
