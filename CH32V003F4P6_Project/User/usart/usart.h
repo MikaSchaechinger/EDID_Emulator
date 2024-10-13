@@ -20,7 +20,7 @@ void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
 
 // Sending a string over the USART
-void USART_SendString(const char* str, bool noNewLine = false);
+void USART_SendString(const char* str, bool newLine = true);
 
 // Sending bytes as hex over the USART
 void USART_SendHex(const uint8_t* byte);

@@ -43,7 +43,7 @@ void USARTx_CFG(void) {
 }
 
 
-void USART_SendString(const char* str, bool noNewLine) {
+void USART_SendString(const char* str, bool newLine) {
     while (*str != '\0')
     {
         USART_SendData(USART1, *str);
@@ -51,7 +51,7 @@ void USART_SendString(const char* str, bool noNewLine) {
         while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
     }
 
-    if (!noNewLine) {
+    if (newLine) {
         USART_SendData(USART1, '\n');
         while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
     }
