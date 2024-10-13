@@ -40,6 +40,7 @@ No Flow Control
 The Commands are:
 
 *Command*                       - *Description*
+
 version                         - Shows the Version of the Firmware
 help                            - Shows this help
 man <command>                   - Shows the manual for the given command 
