@@ -1,173 +1,55 @@
-/********************************** (C) COPYRIGHT *******************************
- * File Name          : main.c
- * Author             : WCH
- * Version            : V1.0.0
- * Date               : 2022/08/08
- * Description        : Main program body.
- * Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
- * SPDX-License-Identifier: Apache-2.0
- *******************************************************************************/
-
-/*
- *@Note
- Multiprocessor communication mode routine:
- Master:USART1_Tx(PD5)\USART1_Rx(PD6).
- This routine demonstrates that USART1 receives the data sent by CH341 and inverts
- it and sends it (baud rate 115200).
-
- Hardware connection:PD5 -- Rx
-                     PD6 -- Tx
-
-*/
+#include <stdint.h>
+#include <debug.h>
+#include "eeprom/AT24CXX.h"
+//#include "I2C.h"
+#include "time/SystemTimer.h"
 
 
-#include <led/standard_led.h>
-#include <led/pwm_led.h>
-#include "debug.h"
-#include <button/button.h>
-#include <usart/usart.h>
-#include <eeprom/edid_manager.h>
-#include <communication/communication_manager.h>
-#include <string>
+// Testdaten
+uint8_t test_data_base0[8] = { 11, 22, 33, 44, 55, 66, 77, 88 };
+uint8_t test_data_base1[8] = { 88, 77, 66, 55, 44, 33, 22, 11 };
+uint8_t read_buffer_0[8]   = { 0 };
+uint8_t read_buffer_1[8]   = { 0 };
 
+// Debug-Variablen
+volatile AT24CXX::Result result_write_0;
+volatile AT24CXX::Result result_read_0;
+volatile AT24CXX::Result result_write_1;
+volatile AT24CXX::Result result_read_1;
 
-/* Global define */
-#define ever ;;
+volatile I2C::Result last_i2c_result_0;
+volatile I2C::Result last_i2c_result_1;
 
-/* Global Variable */
-volatile uint32_t msTicks = 0;
-
-EDIDManager edidManager(GPIOC, EEPROM_ADDR_SEL, GPIOC, EEPROM_WRITE_PROTECT);
-Button button(GPIOD, BUTTON_PIN, true);
-StandardLED errorLED(GPIOD, ERROR_LED, true);
-PWM_LED statusLED(GPIOD, STATUS_LED, &TIM1->CH4CVR);
-Communication::CommunicationManager comManager(&statusLED, &errorLED, &edidManager);
-
-
-
-
-
-
-void GPIO_Clock_Init(void){
-    RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOC|RCC_APB2Periph_GPIOD, ENABLE);
-}
-
-
-void setup_interrupt(){
-    // Enable the interrupt
-    NVIC_EnableIRQ(SysTicK_IRQn);
-    SysTick->SR = 0;   
-    SysTick->CMP = (SystemCoreClock / 2000);  // SystemCoreClock was 2x slower then SysTick Clock
-    SysTick->CNT = 0;
-    SysTick->CTLR = 0;  // Reset System Count Control Register
-    SysTick->CTLR |= 0b0001;    // Start the system counter STK
-    SysTick->CTLR |= 0b0010;    // Enabling counter interrupts
-    SysTick->CTLR |= 0b0100;    //  1: HCLK for time base; 0: HCLK/8 for time base.
-    SysTick->CTLR |= 0b1000;    // Re-counting from 0 after counting up to the comparison value.
-    //SysTick->CTLR = 0x000F;
-
-}
-
-// essential for the timer running with cpps
-extern "C" {    void SysTick_Handler(void); }
-void SysTick_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));  //("WCH-Interrupt-fast")
-void SysTick_Handler(void)
+int main()
 {
-    SysTick->SR = 0;    // Reset the Status Registers
-    msTicks++;
-    button.update(msTicks);
-    statusLED.update(msTicks);
-    errorLED.update(msTicks);
-}
+    // Init
+    SystemTimer_Init();
+    I2C::init(100000); // 100kHz
 
-// USART1 Interrupt Handler
-void USART1_IRQHandler(void) {
-    // Interrupt was triggered by RXNE -> Receive Data Register Not Empty
+    // EEPROM: A0 = PC4, WP = PC3
+    AT24CXX eeprom(GPIOC, EEPROM_ADDR_SEL, GPIOC, EEPROM_WRITE_PROTECT);
 
-    // Check if the interrupt was triggered by RXNE
-    if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
-    {
-        // Read the received byte from the USART
-        uint8_t receivedByte = USART_ReceiveData(USART1);
-        // Give the received byte to the communication manager
-        comManager.newByte(receivedByte);
-    }
-}
+    eeprom.setWriteProtect(false);
 
+    // --------- SLOT 0 (Adresse 0x50 / A0 = 0) ---------
+    eeprom.selectBase0();
+    result_write_0 = eeprom.writeBytes(0x00, test_data_base0, sizeof(test_data_base0));
+    delay_ms(10);  // Sicherheitspuffer für Page Write
+    result_read_0 = eeprom.readBytes(0x00, read_buffer_0, sizeof(read_buffer_0));
+    last_i2c_result_0 = eeprom.lastI2CResult();
 
-void setupSysTickTimer(){
-    // Starts the Systick Timer without interrupts. Timer runs repeatedly over the full range.
-    SysTick->CMP = 0xFFFFFF;    // Set the comparison value to the maximum value
-    SysTick->CNT = 0;           // Reset the counter
-    SysTick->CTLR = 0x00000005; // Enable the timer
-}
+    // --------- SLOT 1 (Adresse 0x51 / A0 = 1) ---------
+    eeprom.selectBase1();
+    result_write_1 = eeprom.writeBytes(0x00, test_data_base1, sizeof(test_data_base1));
+    delay_ms(10);
+    result_read_1 = eeprom.readBytes(0x00, read_buffer_1, sizeof(read_buffer_1));
+    last_i2c_result_1 = eeprom.lastI2CResult();
 
+    
+    eeprom.setWriteProtect(false);
 
-void pwmPD4init(){
-    // Remap TIM1_RM to 11  (Datasheet page 55, table Table 7-8 TIM1 alternate function remapping)
-    // PD4 gets TIM1_CH4
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
-    AFIO->PCFR1 &= ~(AFIO_PCFR1_TIM1_REMAP);
-    AFIO->PCFR1 |= AFIO_PCFR1_TIM1_REMAP_1;     // set first bit to 1
-    AFIO->PCFR1 |= AFIO_PCFR1_TIM1_REMAP_0;     // set second bit to 1
-    // AFIO->PCFR1 |= AFIO_PCFR1_TIM1_REMAP_FULLREMAP;
-
-    GPIO_InitTypeDef GPIO_InitStructure = {0};
-    TIM_OCInitTypeDef TIM_OCInitStructure = {0};
-    TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure = {0};
-
-    RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOD | RCC_APB2Periph_TIM1, ENABLE );
-
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;     // Alternate Function Push-Pull
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOD, &GPIO_InitStructure);
-
-    TIM_TimeBaseInitStructure.TIM_Period = 1000;  // Set the period for PWM. Count value from 0 to 100
-    TIM_TimeBaseInitStructure.TIM_Prescaler = 480 - 1;  // Set the prescaler (depending on system clock)
-    TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-    TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
-    TIM_TimeBaseInit(TIM1, &TIM_TimeBaseInitStructure);
-
-    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-    TIM_OCInitStructure.TIM_Pulse = 1;  // Set the initial duty cycle to 50%
-    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;   //
-
-    // Select Channel 4
-    TIM_OC4Init(TIM1, &TIM_OCInitStructure);
-
-    // Enable PWM
-    TIM_CtrlPWMOutputs(TIM1, ENABLE);
-    TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
-    TIM_ARRPreloadConfig(TIM1, ENABLE);
-    TIM_Cmd(TIM1, ENABLE);
-}
-
-
-/*********************************************************************
- * @fn      main
- *
- * @brief   Main program.
- *
- * @return  none
- */
-int main(void)
-{
-    GPIO_Clock_Init();
-
-    // Initialice USART1 with the RX interrupt
-    USARTx_CFG();
-
-    button.init();
-    errorLED.init();
-    pwmPD4init();
-    statusLED.init();
-
-    setup_interrupt();  // Setup the interrupt for the button, LEDs and SysTick Timer
-    comManager.init();
-    for(ever)
-    {   
-        comManager.update();
+    // 🐞 Breakpoint hier setzen → alles debuggen
+    while (1) {
+        // Optional: LED blinken oder Fehler signalisieren
     }
 }

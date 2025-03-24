@@ -43,5 +43,6 @@ User/communication \
 User/eeprom \
 User/led \
 User/string \
+User/time \
 User/usart \
 

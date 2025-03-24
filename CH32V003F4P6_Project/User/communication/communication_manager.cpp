@@ -1,4 +1,4 @@
-#include "communication_manager.h"
+/*#include "communication_manager.h"
 
 
 
@@ -63,7 +63,7 @@ Communication::Communication_State Communication::CommunicationManager::getState
 /****************** Functions called in update **************************/
 
 
-bool Communication::CommunicationManager::handleError() {
+/*bool Communication::CommunicationManager::handleError() {
     // Check for timeout
     if (this->state == Communication_State::TIMEOUT) {
         USART_SendString("A timeout occurred. Received a message without an EOF \\n");
@@ -110,6 +110,11 @@ void Communication::CommunicationManager::processMessage() {
         return;
     }
     switch (this->buffer[0]) {
+        case 's':
+            if (bufferIsCommand("slot"))
+                this->slotCommand();
+            else{}
+            break;
         case 't':
             if (bufferIsCommand("test"))
                 this->testCommand();
@@ -174,6 +179,30 @@ bool Communication::CommunicationManager::getInteger(const char* str, int32_t* v
 }
 
 
+void Communication::CommunicationManager::slotCommand() {
+    char* buf = (char*)this->buffer + 5;
+    if (buf[0] == '\n' || buf[0] == '\0') {
+        // Slot command without parameters
+        this->edidManager->printSlotInfo();
+        return;
+    }
+    buf++;  // Skip the space
+    int32_t slot = 0;
+    if (!getInteger(buf, &slot)) {
+        USART_SendString("Invalid Integer after slot command");
+        return;
+    }
+    if (slot < 0 || slot > EDID_SLOT_COUNT) {
+        USART_SendString("Invalid Slot [0:", false);
+        USART_SendInteger((uint32_t)EDID_SLOT_COUNT, false);
+        USART_SendString("] after slot command. Slot was: ", false);
+        USART_SendInteger(slot);
+        return;
+    }
+    this->edidManager->printSlotInfo((uint8_t)slot);
+}
+
+
 void Communication::CommunicationManager::testCommand() {
     char* buf = (char*)this->buffer + 4;
     if (buf[0] == '\n') {
@@ -228,4 +257,4 @@ void Communication::CommunicationManager::testCommand() {
 void Communication::CommunicationManager::unknownCommand() {
     USART_SendString("Unknown command received!");
 }
-    
+    */

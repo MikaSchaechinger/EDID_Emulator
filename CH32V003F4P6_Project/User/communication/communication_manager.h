@@ -78,6 +78,8 @@ namespace Communication{
         bool startsWithCommand(const char* str, const char* prefix);
         bool getInteger(const char* str, int32_t* value);
 
+
+        void slotCommand();
         void testCommand();
 
         void unknownCommand();

@@ -10,6 +10,7 @@ RM := rm -rf
 # All of the sources participating in the build are defined here
 -include sources.mk
 -include User/usart/subdir.mk
+-include User/time/subdir.mk
 -include User/string/subdir.mk
 -include User/led/subdir.mk
 -include User/eeprom/subdir.mk
@@ -74,7 +75,7 @@ all: EDID_Emulator.elf secondary-outputs
 
 # Tool invocations
 EDID_Emulator.elf: $(OBJS) $(USER_OBJS)
-	@	@	riscv-none-embed-g++ -march=rv32ecxw -mabi=ilp32e -msmall-data-limit=0 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized -T Link.ld -nostartfiles -Xlinker --gc-sections -L"../LD" -Wl,-Map,"EDID_Emulator.map" --specs=nano.specs --specs=nosys.specs -o "EDID_Emulator.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+	@	@	riscv-none-embed-g++ -march=rv32ecxw -mabi=ilp32e -msmall-data-limit=0 -msave-restore -Os -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -fno-common -Wunused -Wuninitialized  -g -T Link.ld -nostartfiles -Xlinker --gc-sections -L"../LD" -Wl,-Map,"EDID_Emulator.map" --specs=nano.specs --specs=nosys.specs -o "EDID_Emulator.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@	@
 EDID_Emulator.hex: EDID_Emulator.elf
 	@	riscv-none-embed-objcopy -O ihex "EDID_Emulator.elf"  "EDID_Emulator.hex"
