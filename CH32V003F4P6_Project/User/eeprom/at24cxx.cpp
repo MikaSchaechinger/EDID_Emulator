@@ -1,247 +1,231 @@
-#include <eeprom/at24cxx.h>
+#include "AT24CXX.h"
+#include "I2C.h"
+#include "ch32v00x_gpio.h"
+#include "pins.h"
+#include "time/SystemTimer.h"
 
 
-AT24CXX::AT24CXX(uint8_t address, uint16_t size) {
-    this->size = size;
-    this->address = address;
-
-    IIC_Init(100000, 0xA0);
-}
-
-
-void AT24CXX::setI2CAddress(uint8_t address) {
-    this->address = address << 1;
-}
-
-
-uint8_t AT24CXX::getI2CAddress() {
-    return this->address >> 1;
-}
+/**
+ * @brief Constructor.
+ * 
+ * @param addrPort GPIO port of the address line (A0).
+ * @param addrPin Pin number of the address line (A0).
+ * @param wpPort GPIO port of the write protect line (WP). If not used, set to nullptr.
+ * @param wpPin Pin number of the write protect line (WP). If not used, set to 0.
+ * 
+ * @note The address line (A0) must be connected to the EEPROM. The write protect line (WP) is optional.
+ */
+AT24CXX::AT24CXX(uint16_t address, GPIO_TypeDef* wpPort, uint16_t wpPin)
+    : address(address), wp_port(wpPort), wp_pin(wpPin){
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE); // Port C global aktivieren
 
 
-bool AT24CXX::waitForI2CEvent(uint32_t event) {
-    uint32_t timeout = TIMEOUT_LIMIT;
-    while (!I2C_CheckEvent(I2C1, event)) {
-        if (timeout-- == 0) {
-            return false;   // Timeout occurred
-        }
+    // ggf. Write-Protect-Pin konfigurieren
+    if (wp_port != nullptr) {
+        
+        // A0 Pin als Ausgang
+        GPIO_InitTypeDef gpio = {0};
+        gpio.GPIO_Mode = GPIO_Mode_Out_PP;
+        gpio.GPIO_Speed = GPIO_Speed_10MHz;
+        gpio.GPIO_Pin = wp_pin;
+        GPIO_Init(wp_port, &gpio);
+        setWriteProtect(true);  // Schreiben standardmäßig verbieten
     }
-    return true;
+}
+
+
+/**
+ * @brief Sets the I2C bus address of the EEPROM.
+ * 
+ * @param address I2C bus address of the EEPROM.
+ */
+void AT24CXX::setBusAddress(uint16_t address){
+    this->address = address;
+}
+
+
+/**
+ * @brief Returns the I2C bus address of the EEPROM.
+ * 
+ * @return I2C bus address of the EEPROM.
+ */
+uint16_t AT24CXX::getBusAddress() const{
+    return address;
+}
+
+
+/**
+ * @brief Sets the write protect status.
+ * 
+ * Writes to the write protect pin of the EEPROM.
+ * 
+ * @param enable If true, write protect is enabled. If false, write protect is disabled.
+ * 
+ * @note If the write protect pin is not used, this function does nothing.
+ */
+void AT24CXX::setWriteProtect(bool enable){
+    if (!wp_port) return;
+
+    if (enable)
+        GPIO_SetBits(wp_port, wp_pin);   // Write-Protect aktiv (HIGH)
+    else
+        GPIO_ResetBits(wp_port, wp_pin); // Write-Protect aus (LOW)
+}
+
+
+/**
+ * @brief Returns the current write protect status.
+ * 
+ * @return true if write protect is enabled, false otherwise.
+ * 
+ * @note If the write protect pin is not used, always returns false.
+ */
+bool AT24CXX::getWriteProtect() const{
+    if (!wp_port) return false;
+
+    return GPIO_ReadOutputDataBit(wp_port, wp_pin);
 }
 
 
 
 
+/**
+*   @brief Reads a number of bytes from the EEPROM.
+*
+*   Supports 1-byte and 2-byte addressing. Configure in AT24CXX_Config.h via "AT24CXX_USE_2BYTE_ADDR".
+*
+*   @param memAddr: Memory address to start reading from.
+*   @param buffer: Pointer to the buffer where the data will be stored.
+*   @param length: Number of bytes to read.
+*   @return AT24CXX::Result Operation result. If I2C_Error, check lastI2CResult() for details.
+*/
+AT24CXX::Result AT24CXX::readBytes(uint16_t memAddr, uint8_t* buffer, uint16_t length){
+    if (!buffer || length == 0 || memAddr + length > kEepromSize)
+        return Result::InvalidParameter;
+
+#if AT24CXX_USE_2BYTE_ADDR
+    uint8_t addr[2] = {
+        static_cast<uint8_t>((memAddr >> 8) & 0xFF), // MSB
+        static_cast<uint8_t>(memAddr & 0xFF)         // LSB
+    };
+
+    I2C::Result res = I2C::write_then_read(
+        static_cast<uint8_t>(address),
+        addr, 2,
+        buffer, length
+    );
+#else
+    uint8_t addr = static_cast<uint8_t>(memAddr & 0xFF);
+
+    I2C::Result res = I2C::write_then_read(
+        static_cast<uint8_t>(address),
+        &addr, 1,
+        buffer, length
+    );
+#endif
+
+    if (res != I2C::Result::Success) {
+        last_i2c_result = res;
+        return Result::I2C_Error;
+    }
+
+    return Result::Success;
+}
 
 
-I2C::State AT24CXX::readBytes(uint16_t addr, uint8_t* buffer, uint16_t length)
-{
-    // Wait until the I2C bus is no longer busy
-    //while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET);
-    uint32_t timeout = TIMEOUT_LIMIT;
-    while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET) {
-        if (timeout-- == 0) {
-            return I2C::BUSY_ERROR;   // Bus is busy for too long
-        }
+/**
+ * @brief Writes a number of bytes to the EEPROM.
+ * 
+ * Handles page boundaries automatically. Supports 1-byte and 2-byte addressing based on AT24CXX_Config.h.
+ *
+ * @param memAddr Start memory address to write to.
+ * @param data Pointer to the data to write.
+ * @param length Number of bytes to write.
+ * @return AT24CXX::Result Operation result.
+ */
+AT24CXX::Result AT24CXX::writeBytes(uint16_t memAddr, const uint8_t* data, uint16_t length){
+    if (!data || length == 0 || memAddr + length > kEepromSize)
+        return Result::InvalidParameter;
+
+    if (wp_port && GPIO_ReadOutputDataBit(wp_port, wp_pin)) {
+        return Result::WriteProtectEnabled;
     }
     
-    // Generate a START condition
-    I2C_GenerateSTART(I2C1, ENABLE);
 
-    // Wait until START condition has been transmitted
-    if (!this->waitForI2CEvent(I2C_EVENT_MASTER_MODE_SELECT)) {
-        return I2C::TIMEOUT_ERROR;   // Timeout occurred
-    }
-    // Send EEPROM I2C address (already shifted) in write mode to set memory address
-    I2C_Send7bitAddress(I2C1, this->address, I2C_Direction_Transmitter);
+    // AT24C32 supports Page Write (32 Bytes max)
+    const uint8_t pageSize = 32;
 
-    // Wait until address has been acknowledged
-    if (!this->waitForI2CEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
-        if (I2C_GetFlagStatus(I2C1, I2C_FLAG_AF) == SET) {  // Check if NACK received   
-            I2C_ClearFlag(I2C1, I2C_FLAG_AF);
-            return I2C::NACK_ERROR;   // NACK received
-        }
-        return I2C::TIMEOUT_ERROR;   // Timeout occurred
-    }
-    // Send the memory address to read from
-    I2C_SendData(I2C1, (uint8_t)(addr & 0x00FF));  // Send the LSB of the memory address
-    if (!this->waitForI2CEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
-        if (I2C_GetFlagStatus(I2C1, I2C_FLAG_AF) == SET) {  // Check if NACK received   
-            I2C_ClearFlag(I2C1, I2C_FLAG_AF);
-            return I2C::NACK_ERROR;   // NACK received
-        }
-        return I2C::TIMEOUT_ERROR;   // Timeout occurred
-    }
-    // Generate a RESTART condition to switch to read mode
-    I2C_GenerateSTART(I2C1, ENABLE);
-    if (!this->waitForI2CEvent(I2C_EVENT_MASTER_MODE_SELECT)) {
-        return I2C::TIMEOUT_ERROR;   // Timeout occurred
-    }
-    // Send EEPROM I2C address in read mode (already shifted with LSB for read mode)
-    I2C_Send7bitAddress(I2C1, this->address | 1, I2C_Direction_Receiver);
-    if (!this->waitForI2CEvent(I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)) {
-        if (I2C_GetFlagStatus(I2C1, I2C_FLAG_AF) == SET) {  // Check if NACK received   
-            I2C_ClearFlag(I2C1, I2C_FLAG_AF);   // TODO: Necassary?
-            return I2C::NACK_ERROR;   // NACK received
-        }
-        return I2C::TIMEOUT_ERROR;   // Timeout occurred
-    }
-
-    // Read multiple bytes
-    while (length)
+    while (length > 0)
     {
-        if (length == 1) {
-            // For the last byte, disable ACK and generate STOP
-            I2C_AcknowledgeConfig(I2C1, DISABLE);
-            I2C_GenerateSTOP(I2C1, ENABLE);
-        }
-        
-        // Wait until the byte has been received
-        timeout = TIMEOUT_LIMIT;
-        while (I2C_GetFlagStatus(I2C1, I2C_FLAG_RXNE) == RESET) {
-            if (timeout-- == 0) {
-                return I2C::TIMEOUT_ERROR;   // Timeout occurred
-            }
+        //uint8_t addr = static_cast<uint8_t>(memAddr & 0xFF);
+        uint8_t pageOffset = memAddr % pageSize;
+        uint8_t chunk = pageSize - pageOffset;
+        if (chunk > length) chunk = length;
+
+#if AT24CXX_USE_2BYTE_ADDR
+        uint8_t temp[2 + pageSize];
+        temp[0] = (memAddr >> 8) & 0xFF; // MSB
+        temp[1] = memAddr & 0xFF;        // LSB
+        for (uint8_t i = 0; i < chunk; ++i)
+            temp[2 + i] = data[i];
+        I2C::Result res = I2C::write(static_cast<uint8_t>(address), temp, chunk + 2);
+#else
+        uint8_t temp[1 + pageSize];
+        temp[0] = memAddr & 0xFF;
+        for (uint8_t i = 0; i < chunk; ++i)
+            temp[1 + i] = data[i];
+        I2C::Result res = I2C::write(static_cast<uint8_t>(address), temp, chunk + 1);
+#endif
+
+        if (res != I2C::Result::Success) {
+            last_i2c_result = res;
+            return Result::I2C_Error;
         }
 
-        // Store the received byte in the buffer
-        *buffer = I2C_ReceiveData(I2C1);
-        buffer++;  // Increment the buffer pointer
-        length--;  // Decrement the remaining byte count
+        memAddr += chunk;
+        data    += chunk;
+        length  -= chunk;
+
+        // EEPROM needs write time (~5ms)
+        delay_ms(5);
     }
 
-    // Re-enable ACK for future read operations
-    I2C_AcknowledgeConfig(I2C1, ENABLE);
-    return I2C::SUCCESS;  // Communication was successful
+    return Result::Success;
 }
 
 
-I2C::State AT24CXX::writeBytes(uint16_t addr, uint8_t* buffer, uint16_t length)
-{
-    // Wait until the I2C bus is no longer busy
-    uint32_t timeout = TIMEOUT_LIMIT;
-    while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET) {
-        if (timeout-- == 0) {
-            return I2C::BUSY_ERROR;   // Bus is busy for too long
+/**
+ * @brief Clears a region of EEPROM by writing a pattern (default: 0xFF).
+ * 
+ * Calls writeBytes() internally.
+ *
+ * @param memAddr Start address to clear.
+ * @param length Number of bytes to write.
+ * @param pattern Byte pattern to write (default: 0xFF).
+ * @return AT24CXX::Result Operation result.
+ */
+AT24CXX::Result AT24CXX::clearBytes(uint16_t memAddr, uint16_t length, uint8_t pattern){
+    if (length == 0 || memAddr + length > kEepromSize)
+        return Result::InvalidParameter;
+
+    const uint8_t chunkSize = 32;
+    uint8_t buffer[chunkSize];
+
+    for (uint8_t i = 0; i < chunkSize; ++i)
+        buffer[i] = pattern;
+
+    while (length > 0) {
+        uint8_t chunk = (length > chunkSize) ? chunkSize : length;
+
+        auto result = writeBytes(memAddr, buffer, chunk);
+        if (result != Result::Success) {
+            return result;
         }
+
+        memAddr += chunk;
+        length  -= chunk;
     }
 
-    // Generate a START condition
-    I2C_GenerateSTART(I2C1, ENABLE);
-
-    // Wait until START condition has been transmitted
-    if (!this->waitForI2CEvent(I2C_EVENT_MASTER_MODE_SELECT)) {
-        return I2C::TIMEOUT_ERROR;   // Timeout occurred
-    }
-
-    // Send EEPROM I2C address (already shifted) in write mode
-    I2C_Send7bitAddress(I2C1, this->address, I2C_Direction_Transmitter);
-
-    // Wait until address has been acknowledged
-    if (!this->waitForI2CEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
-        if (I2C_GetFlagStatus(I2C1, I2C_FLAG_AF) == SET) {  // Check if NACK received   
-            I2C_ClearFlag(I2C1, I2C_FLAG_AF);  // Clear NACK flag
-            return I2C::NACK_ERROR;   // NACK received, no device responded
-        }
-        return I2C::TIMEOUT_ERROR;   // Timeout occurred
-    }
-
-    // Send the starting memory address to write to
-    I2C_SendData(I2C1, (uint8_t)(addr & 0x00FF));  // Send the LSB of the memory address
-    if (!this->waitForI2CEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
-        if (I2C_GetFlagStatus(I2C1, I2C_FLAG_AF) == SET) {  // Check if NACK received
-            I2C_ClearFlag(I2C1, I2C_FLAG_AF);  // Clear NACK flag
-            return I2C::NACK_ERROR;   // NACK received
-        }
-        return I2C::TIMEOUT_ERROR;   // Timeout occurred
-    }
-
-    // Write multiple bytes to the EEPROM
-    while (length--) {
-        I2C_SendData(I2C1, *buffer);  // Send the byte from the buffer
-        buffer++;  // Increment the buffer pointer
-
-        // Wait until the byte has been transmitted
-        if (!this->waitForI2CEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
-            if (I2C_GetFlagStatus(I2C1, I2C_FLAG_AF) == SET) {  // Check if NACK received
-                I2C_ClearFlag(I2C1, I2C_FLAG_AF);  // Clear NACK flag
-                return I2C::NACK_ERROR;   // NACK received
-            }
-            return I2C::TIMEOUT_ERROR;   // Timeout occurred
-        }
-    }
-
-    // Generate a STOP condition to end the transmission
-    I2C_GenerateSTOP(I2C1, ENABLE);
-
-    return I2C::SUCCESS;  // Communication was successful
+    return Result::Success;
 }
-
-
-I2C::State AT24CXX::clearBytes(uint16_t addr, uint16_t length, uint8_t insert)
-{
-    // Wait until the I2C bus is no longer busy
-    uint32_t timeout = TIMEOUT_LIMIT;
-    while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY) != RESET) {
-        if (timeout-- == 0) {
-            return I2C::BUSY_ERROR;   // Bus is busy for too long
-        }
-    }
-
-    // Generate a START condition
-    I2C_GenerateSTART(I2C1, ENABLE);
-
-    // Wait until START condition has been transmitted
-    if (!this->waitForI2CEvent(I2C_EVENT_MASTER_MODE_SELECT)) {
-        return I2C::TIMEOUT_ERROR;   // Timeout occurred
-    }
-
-    // Send EEPROM I2C address (already shifted) in write mode
-    I2C_Send7bitAddress(I2C1, this->address, I2C_Direction_Transmitter);
-
-    // Wait until address has been acknowledged
-    if (!this->waitForI2CEvent(I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
-        if (I2C_GetFlagStatus(I2C1, I2C_FLAG_AF) == SET) {  // Check if NACK received   
-            I2C_ClearFlag(I2C1, I2C_FLAG_AF);  // Clear NACK flag
-            return I2C::NACK_ERROR;   // NACK received, no device responded
-        }
-        return I2C::TIMEOUT_ERROR;   // Timeout occurred
-    }
-
-    // Send the starting memory address to write to
-    I2C_SendData(I2C1, (uint8_t)(addr & 0x00FF));  // Send the LSB of the memory address
-    if (!this->waitForI2CEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
-        if (I2C_GetFlagStatus(I2C1, I2C_FLAG_AF) == SET) {  // Check if NACK received
-            I2C_ClearFlag(I2C1, I2C_FLAG_AF);  // Clear NACK flag
-            return I2C::NACK_ERROR;   // NACK received
-        }
-        return I2C::TIMEOUT_ERROR;   // Timeout occurred
-    }
-
-    // Write multiple bytes to the EEPROM
-    while (length--) {
-        I2C_SendData(I2C1, insert);  // Send insert byte
-
-        // Wait until the byte has been transmitted
-        if (!this->waitForI2CEvent(I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
-            if (I2C_GetFlagStatus(I2C1, I2C_FLAG_AF) == SET) {  // Check if NACK received
-                I2C_ClearFlag(I2C1, I2C_FLAG_AF);  // Clear NACK flag
-                return I2C::NACK_ERROR;   // NACK received
-            }
-            return I2C::TIMEOUT_ERROR;   // Timeout occurred
-        }
-    }
-
-    // Generate a STOP condition to end the transmission
-    I2C_GenerateSTOP(I2C1, ENABLE);
-
-    return I2C::SUCCESS;  // Communication was successful
-}
-
-
-
-
-
-
-
 
